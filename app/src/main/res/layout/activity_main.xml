@@ -11,40 +11,75 @@
         android:layout_height="495dp"
         android:orientation="vertical"
         tools:layout_editor_absoluteX="8dp"
-        tools:layout_editor_absoluteY="8dp">
+        tools:layout_editor_absoluteY="8dp"
+        android:weightSum="1">
 
-        <Button
-            android:id="@+id/bluetooth"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/lock_unlock"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            tools:layout_editor_absoluteX="147dp"
-            tools:layout_editor_absoluteY="230dp" />
+            android:orientation="horizontal"
+            tools:layout_editor_absoluteX="7dp"
+            tools:layout_editor_absoluteY="7dp">
 
-        <EditText
-            android:id="@+id/ipAddress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Enter the I.P. Address" />
+            <ImageButton
+                android:id="@+id/checkLock"
+                android:layout_width="194dp"
+                android:layout_height="76dp"
+                android:scaleType="fitCenter" />
 
-        <EditText
-            android:id="@+id/portNumber"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Enter the port number" />
+            <ImageButton
+                android:id="@+id/checkBluetooth"
+                android:layout_width="match_parent"
+                android:layout_height="77dp"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
 
-        <Button
-            android:id="@+id/wifiLock"
+        <LinearLayout
+            android:id="@+id/linearLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="212dp"
+            android:orientation="vertical"
+            tools:layout_editor_absoluteX="8dp"
+            tools:layout_editor_absoluteY="81dp"
+            android:layout_weight="0.26">
+
+            <Button
+                android:id="@+id/bluetooth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bluetooth" />
+
+            <Button
+                android:id="@+id/lock_unlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Lock/unlock"
+                tools:layout_editor_absoluteX="147dp"
+                tools:layout_editor_absoluteY="230dp" />
+
+            <EditText
+                android:id="@+id/ipAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="Enter the I.P. Address" />
+
+            <EditText
+                android:id="@+id/portNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="Enter the port number" />
+
+            <Button
+                android:id="@+id/wifiLock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Wifi lock/unlock" />
+        </LinearLayout>
+
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>
