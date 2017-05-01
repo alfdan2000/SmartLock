@@ -4,7 +4,12 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
+import android.graphics.drawable.shapes.RectShape;
+import android.graphics.drawable.shapes.RoundRectShape;
 import android.media.Image;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
@@ -26,13 +31,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final Button unlock_lock = (Button)findViewById(R.id.lock_unlock);
-        final Button bluetooth = (Button)findViewById(R.id.bluetooth);
+
         final Button wifiLock = (Button)findViewById(R.id.wifiLock);
-        final ImageButton lockDisplay = (ImageButton)findViewById(R.id.checkLock);
-        final ImageButton blueDisplay = (ImageButton)findViewById(R.id.checkBluetooth);
+        final ImageButton lockDisplay = (ImageButton)findViewById(R.id.checkLock); //Lock for bluetooth
+        final ImageButton blueDisplay = (ImageButton)findViewById(R.id.checkBluetooth);//Toggle Bluetooth on/off
         final TextView ipAddress = (TextView)findViewById(R.id.ipAddress);
         final TextView portNumber = (TextView)findViewById(R.id.portNumber);
+        final TextView status = (TextView)findViewById(R.id.);
         final String lockMessage = "Lock";
         final String unlockMessage = "Unlock";
 
@@ -57,10 +62,10 @@ public class MainActivity extends AppCompatActivity {
         final Drawable BlueOff = getResources().getDrawable(sourceBlueOff);
 
         /**Sets buttons to appropriate text depending on if bluetooth is on or not*/
-        checkBlueBtn(bluetooth, blueDisplay, BlueOn, BlueOff);
+        checkBlueBtn(blueDisplay, BlueOn, BlueOff);
 
         /**Sets buttons to appropriate text depending on if the lock is unlocked or locked.*/
-        checkLockBtn(unlock_lock,wifiLock,lockDisplay);
+        checkLockBtn(wifiLock,lockDisplay, lock, unlock);
 
         blueDisplay.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,65 +91,26 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(isBluetooth) {
-                    if (isLock) {
+                    if (isLock) { //if locked, UNLOCK
                         isLock = false;
-                        lockDisplay.setBackgroundColor(Color.RED);
+                        lockDisplay.setBackgroundColor(Color.GREEN);
                         lockDisplay.setImageDrawable(null);
-                        lockDisplay.setImageDrawable(lock);
+                        lockDisplay.setImageDrawable(unlock);
                         lockDisplay.setScaleType(ImageView.ScaleType.FIT_END);
                         lockDisplay.setAdjustViewBounds(true);
                         lockDisplay.invalidate();
+                        toast("Unlocked");
                     } else {
                         isLock = true;
-                        lockDisplay.setBackgroundColor(Color.GREEN);
+                        lockDisplay.setBackgroundColor(Color.RED);
                         //lockDisplay.setBackgroundResource(R.drawable.unlocked);
                         lockDisplay.setImageDrawable(null);
-                        lockDisplay.setImageDrawable(unlock);
+                        lockDisplay.setImageDrawable(lock);
                         //lockDisplay.setBackgroundResource(R.drawable.unlocked);
                         lockDisplay.setScaleType(ImageView.ScaleType.FIT_CENTER);
                         lockDisplay.setAdjustViewBounds(true);
                         lockDisplay.invalidate();
-                    }
-                }else{
-                    toast("Please Turn On Bluetooth");
-                }
-            }
-        });
-
-
-        bluetooth.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isBluetooth){
-                    bluetooth.setText("Bluetooth off");
-                    bluetooth.setBackgroundColor(Color.GRAY);
-                    isBluetooth = false;
-                    BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
-                    bt.disable();
-                }else{
-                    bluetooth.setText("Bluetooth on");
-                    isBluetooth = true;
-                    bluetooth.setBackgroundColor(Color.BLUE);
-                    bluetooth.setTextColor(Color.WHITE);
-                    BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
-                    bt.enable();
-                }
-            }
-        });
-
-
-        unlock_lock.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isBluetooth) {
-                    if (isLock) {
-                        unlock_lock.setText("Press to Unlock");
-                        isLock = false;
-                        unlock_lock.setBackgroundColor(Color.RED);
-                    } else {
-                        unlock_lock.setText("Press to Lock");
-                        isLock = true;
-                        unlock_lock.setBackgroundColor(Color.GREEN);
+                        toast("Locked");
                     }
                 }else{
                     toast("Please Turn On Bluetooth");
@@ -163,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
                         WifiConnect myClientTask = new WifiConnect(
                                 ipAddress.getText().toString(),
                                 Integer.parseInt(portNumber.getText().toString()));
-                        myClientTask.execute(lockMessage);
+                        myClientTask.execute();
                     } else {
                         wifiLock.setText("Press to Lock");
                         isLock = true;
@@ -171,13 +137,14 @@ public class MainActivity extends AppCompatActivity {
                         WifiConnect myClientTask = new WifiConnect(
                                 ipAddress.getText().toString(),
                                 Integer.parseInt(portNumber.getText().toString()));
-                        myClientTask.execute(unlockMessage);
+                        myClientTask.execute();
                     }
                 }else{
                     toast("Please enter WIFI values");
                 }
             }
         });
+
     }
 
     private boolean isBluetoothEnabled(){
@@ -192,42 +159,36 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    private void checkLockBtn(Button unlock_lock,Button wifiLock, ImageButton lockDisplay ){
+    private void checkLockBtn(Button wifiLock, ImageButton lockDisplay,Drawable lock, Drawable unlock ){
         if(isLock){
-            unlock_lock.setText("Press to Unlock");
-            unlock_lock.setBackgroundColor(Color.RED);
             wifiLock.setText("Press to Unlock through WIFI");
             wifiLock.setBackgroundColor(Color.RED);
             lockDisplay.setBackgroundColor(Color.RED);
-
-
-
-
+            lockDisplay.setImageDrawable(lock);
+            wifiLock.invalidate();
+            lockDisplay.invalidate();
         }else{
-            unlock_lock.setText("Press to Lock");
-            unlock_lock.setBackgroundColor(Color.GREEN);
             wifiLock.setText("Press to Lock through WIFI");
             wifiLock.setBackgroundColor(Color.GREEN);
             lockDisplay.setBackgroundColor(Color.GREEN);
+            lockDisplay.setImageDrawable(unlock);
+            wifiLock.invalidate();
+            lockDisplay.invalidate();
         }
     }
 
-    private void checkBlueBtn(Button bluetooth, ImageButton  blueDisplay, Drawable BlueOn,Drawable BlueOff){
+    private void checkBlueBtn( ImageButton  blueDisplay, Drawable BlueOn,Drawable BlueOff){
         if(isBluetooth){
-            bluetooth.setText("Bluetooth off");
-            bluetooth.setBackgroundColor(Color.GRAY);
-            blueDisplay.setBackgroundColor(Color.GRAY);
-            blueDisplay.setImageDrawable(BlueOff);
-            bluetooth.invalidate();
-            blueDisplay.invalidate();
-        }else{
-            bluetooth.setText("Bluetooth on");
-            bluetooth.setBackgroundColor(Color.BLUE);
-            bluetooth.setTextColor(Color.WHITE);
             blueDisplay.setBackgroundColor(Color.BLUE);
             blueDisplay.setImageDrawable(BlueOn);
-            bluetooth.invalidate();
+            blueDisplay.invalidate();
+        }else{
+            blueDisplay.setBackgroundColor(Color.GRAY);
+            blueDisplay.setImageDrawable(BlueOff);
             blueDisplay.invalidate();
         }
+    }
+    public static void setStatus(String message){
+
     }
 }
