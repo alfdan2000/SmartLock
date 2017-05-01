@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         final ImageButton blueDisplay = (ImageButton)findViewById(R.id.checkBluetooth);//Toggle Bluetooth on/off
         final TextView ipAddress = (TextView)findViewById(R.id.ipAddress);
         final TextView portNumber = (TextView)findViewById(R.id.portNumber);
-        final TextView status = (TextView)findViewById(R.id.);
+        final TextView status = (TextView)findViewById(R.id.status);
         final String lockMessage = "Lock";
         final String unlockMessage = "Unlock";
 
