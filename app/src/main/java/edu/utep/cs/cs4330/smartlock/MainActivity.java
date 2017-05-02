@@ -1,6 +1,9 @@
 package edu.utep.cs.cs4330.smartlock;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
 import android.os.Message;
 import android.content.Intent;
@@ -20,16 +23,23 @@ import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     Boolean isLock = false;
     Boolean isBluetooth = false;
     private Socket socket;
     Boolean isConnected = false;
+    OutputStream outputStream;
+    InputStream inputStream;
+    BluetoothDevice blueDevice;
+    BluetoothAdapter adapter;
 
 
 
@@ -49,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         final TextView status = (TextView) findViewById(R.id.status);
         final String lockMessage = "Lock";
         final String unlockMessage = "Unlock";
+        final BluetoothServerSocket[] blueSocket = new BluetoothServerSocket[1];
+
 
         /**Used to change lock image on Lock Button*/
         String uriLock = "@drawable/locked";  // where myresource (without the extension) is the file
@@ -93,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
                     blueDisplay.setImageDrawable(BlueOn);
                     BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
                     bt.enable();
+
                 }
 
             }
@@ -111,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
                         lockDisplay.setAdjustViewBounds(true);
                         lockDisplay.invalidate();
                         toast("Unlocked");
+                        sendBlueData(unlockMessage);
+                        checkLockDisplays();
                     } else {
                         isLock = true;
                         lockDisplay.setBackgroundColor(Color.RED);
@@ -122,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
                         lockDisplay.setAdjustViewBounds(true);
                         lockDisplay.invalidate();
                         toast("Locked");
+                        sendBlueData(lockMessage);
+                        checkLockDisplays();
                     }
                 } else {
                     toast("Please Turn On Bluetooth");
@@ -189,6 +206,10 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void sendBlueData(String message){
+
+    }
+
     protected void toast(String msg) {
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
@@ -202,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
         String uriULock = "@drawable/unlocked";  // where myresource (without the extension) is the file
         int sourceULock = getResources().getIdentifier(uriULock, null, getPackageName());
         final Drawable unlock = getResources().getDrawable(sourceULock);
+
 
         if (isLock) {
             wifiLock.setText("Press to Unlock");
@@ -227,6 +249,8 @@ public class MainActivity extends AppCompatActivity {
         String uriBlueOff = "@drawable/bluetooth_off";  // where myresource (without the extension) is the file
         int sourceBlueOff = getResources().getIdentifier(uriBlueOff, null, getPackageName());
         final Drawable BlueOff = getResources().getDrawable(sourceBlueOff);
+        isBluetooth = isBluetoothEnabled();
+
         if (isBluetooth) {
             blueDisplay.setBackgroundColor(Color.BLUE);
             blueDisplay.setImageDrawable(BlueOn);
@@ -236,6 +260,11 @@ public class MainActivity extends AppCompatActivity {
             blueDisplay.setImageDrawable(BlueOff);
             blueDisplay.invalidate();
         }
+    }
+
+    private boolean isBluetoothEnabled(){
+        BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+        return bt != null && bt.isEnabled();
     }
 
 
