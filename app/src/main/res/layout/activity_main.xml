@@ -44,6 +44,7 @@
 
             <EditText
                 android:id="@+id/ipAddress"
+                android:text="192.168.1.143"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ems="10"
@@ -52,6 +53,7 @@
 
             <EditText
                 android:id="@+id/portNumber"
+                android:text="8080"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ems="10"
@@ -69,6 +71,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Wifi lock/unlock" />
+
+            <Button
+                android:id="@+id/doorStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Check Door Status" />
 
             <TextView
                 android:id="@+id/status"

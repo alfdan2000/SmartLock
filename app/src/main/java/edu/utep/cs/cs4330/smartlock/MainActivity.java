@@ -1,20 +1,16 @@
 package edu.utep.cs.cs4330.smartlock;
 
 import android.bluetooth.BluetoothAdapter;
+import android.os.Handler;
+import android.os.Message;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.OvalShape;
-import android.graphics.drawable.shapes.RectShape;
-import android.graphics.drawable.shapes.RoundRectShape;
-import android.media.Image;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -22,9 +18,20 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+
 public class MainActivity extends AppCompatActivity {
     Boolean isLock = false;
     Boolean isBluetooth = false;
+    private Socket socket;
+    Boolean isConnected = false;
+
+
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -32,12 +39,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final Button wifiLock = (Button)findViewById(R.id.wifiLock);
-        final ImageButton lockDisplay = (ImageButton)findViewById(R.id.checkLock); //Lock for bluetooth
-        final ImageButton blueDisplay = (ImageButton)findViewById(R.id.checkBluetooth);//Toggle Bluetooth on/off
-        final TextView ipAddress = (TextView)findViewById(R.id.ipAddress);
-        final TextView portNumber = (TextView)findViewById(R.id.portNumber);
-        final TextView status = (TextView)findViewById(R.id.status);
+        final Button wifiLock = (Button) findViewById(R.id.wifiLock);
+        final ImageButton lockDisplay = (ImageButton) findViewById(R.id.checkLock); //Lock for bluetooth
+        final ImageButton blueDisplay = (ImageButton) findViewById(R.id.checkBluetooth);//Toggle Bluetooth on/off
+        final Button connect = (Button) findViewById(R.id.connect);
+        final Button doorStatus = (Button)findViewById(R.id.doorStatus);
+        final TextView ipAddress = (TextView) findViewById(R.id.ipAddress);
+        final TextView portNumber = (TextView) findViewById(R.id.portNumber);
+        final TextView status = (TextView) findViewById(R.id.status);
         final String lockMessage = "Lock";
         final String unlockMessage = "Unlock";
 
@@ -61,27 +70,29 @@ public class MainActivity extends AppCompatActivity {
         int sourceBlueOff = getResources().getIdentifier(uriBlueOff, null, getPackageName());
         final Drawable BlueOff = getResources().getDrawable(sourceBlueOff);
 
-        /**Sets buttons to appropriate text depending on if bluetooth is on or not*/
-        checkBlueBtn(blueDisplay, BlueOn, BlueOff);
+        /**Sets buttons to appropriate text depending on if the door is locked or not*/
+        checkLockDisplays();
 
-        /**Sets buttons to appropriate text depending on if the lock is unlocked or locked.*/
-        checkLockBtn(wifiLock,lockDisplay, lock, unlock);
+
+
+        wifiLock.setEnabled(false);
+        doorStatus.setEnabled(false);
 
         blueDisplay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(isBluetooth){
+                if (isBluetooth) {
                     blueDisplay.setBackgroundColor(Color.GRAY);
                     isBluetooth = false;
                     blueDisplay.setImageDrawable(BlueOff);
-                   // BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
-                   // bt.disable();
-                }else{
+                    BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+                    bt.disable();
+                } else {
                     blueDisplay.setBackgroundColor(Color.BLUE);
                     isBluetooth = true;
                     blueDisplay.setImageDrawable(BlueOn);
-                   // BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
-                   // bt.enable();
+                    BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+                    bt.enable();
                 }
 
             }
@@ -90,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         lockDisplay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(isBluetooth) {
+                if (isBluetooth) {
                     if (isLock) { //if locked, UNLOCK
                         isLock = false;
                         lockDisplay.setBackgroundColor(Color.GREEN);
@@ -112,8 +123,26 @@ public class MainActivity extends AppCompatActivity {
                         lockDisplay.invalidate();
                         toast("Locked");
                     }
-                }else{
+                } else {
                     toast("Please Turn On Bluetooth");
+                }
+            }
+        });
+        connect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!isConnected) {
+                    connectToServer(ipAddress.getText().toString(), portNumber.getText().toString());
+                    isConnected = true;
+                    connect.setText("Disconnect");
+                }else{
+                    sendMessage("Disconnect");
+                    socket = null;
+                    isConnected = false;
+                    doorStatus.setEnabled(false);
+                    wifiLock.setEnabled(false);
+                    connect.setText("Connect");
+                    status.setText("Disconnected");
                 }
             }
         });
@@ -121,74 +150,180 @@ public class MainActivity extends AppCompatActivity {
         wifiLock.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if((ipAddress.getText()) != null || (portNumber.getText())!= null) {
+                if ((ipAddress.getText()) != null || (portNumber.getText()) != null) {
                     if (isLock) {
-                        wifiLock.setText("Press to Unlock");
                         isLock = false;
+                        wifiLock.setText("Press to Unlock");
+
                         wifiLock.setBackgroundColor(Color.RED);
-                        WifiConnect myClientTask = new WifiConnect(
-                                ipAddress.getText().toString(),
-                                Integer.parseInt(portNumber.getText().toString()));
-                        myClientTask.execute();
+                        sendMessage(unlockMessage);
+                        checkLockDisplays();
+
+
                     } else {
-                        wifiLock.setText("Press to Lock");
                         isLock = true;
+                        wifiLock.setText("Press to Lock");
+
                         wifiLock.setBackgroundColor(Color.GREEN);
-                        WifiConnect myClientTask = new WifiConnect(
-                                ipAddress.getText().toString(),
-                                Integer.parseInt(portNumber.getText().toString()));
-                        myClientTask.execute();
+                        sendMessage(lockMessage);
+                        checkLockDisplays();
+
+
                     }
-                }else{
+                } else {
                     toast("Please enter WIFI values");
                 }
             }
         });
 
+        doorStatus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendMessage("IsLocked");
+                checkLockDisplays();
+
+
+            }
+        });
+
+
     }
 
-    private boolean isBluetoothEnabled(){
-        BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
-        return bt != null && bt.isEnabled();
-    }
-    private void enableBluetooth(){
-        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        startActivity(intent);
-    }
     protected void toast(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
 
-    private void checkLockBtn(Button wifiLock, ImageButton lockDisplay,Drawable lock, Drawable unlock ){
-        if(isLock){
-            wifiLock.setText("Press to Unlock through WIFI");
+    private void checkLockDisplays() {
+        final Button wifiLock = (Button) findViewById(R.id.wifiLock);
+        final ImageButton lockDisplay = (ImageButton) findViewById(R.id.checkLock);
+        String uriLock = "@drawable/locked";  // where myresource (without the extension) is the file
+        int sourceLock = getResources().getIdentifier(uriLock, null, getPackageName());
+        final Drawable lock = getResources().getDrawable(sourceLock);
+        String uriULock = "@drawable/unlocked";  // where myresource (without the extension) is the file
+        int sourceULock = getResources().getIdentifier(uriULock, null, getPackageName());
+        final Drawable unlock = getResources().getDrawable(sourceULock);
+
+        if (isLock) {
+            wifiLock.setText("Press to Unlock");
             wifiLock.setBackgroundColor(Color.RED);
             lockDisplay.setBackgroundColor(Color.RED);
             lockDisplay.setImageDrawable(lock);
             wifiLock.invalidate();
             lockDisplay.invalidate();
-        }else{
-            wifiLock.setText("Press to Lock through WIFI");
+        } else {
+            wifiLock.setText("Press to Lock");
             wifiLock.setBackgroundColor(Color.GREEN);
             lockDisplay.setBackgroundColor(Color.GREEN);
             lockDisplay.setImageDrawable(unlock);
             wifiLock.invalidate();
             lockDisplay.invalidate();
         }
-    }
 
-    private void checkBlueBtn( ImageButton  blueDisplay, Drawable BlueOn,Drawable BlueOff){
-        if(isBluetooth){
+
+        final ImageButton blueDisplay = (ImageButton) findViewById(R.id.checkBluetooth);
+        String uriBlueOn = "@drawable/bluetooth_on";  // where myresource (without the extension) is the file
+        int sourceBlueOn = getResources().getIdentifier(uriBlueOn, null, getPackageName());
+        final Drawable BlueOn = getResources().getDrawable(sourceBlueOn);
+        String uriBlueOff = "@drawable/bluetooth_off";  // where myresource (without the extension) is the file
+        int sourceBlueOff = getResources().getIdentifier(uriBlueOff, null, getPackageName());
+        final Drawable BlueOff = getResources().getDrawable(sourceBlueOff);
+        if (isBluetooth) {
             blueDisplay.setBackgroundColor(Color.BLUE);
             blueDisplay.setImageDrawable(BlueOn);
             blueDisplay.invalidate();
-        }else{
+        } else {
             blueDisplay.setBackgroundColor(Color.GRAY);
             blueDisplay.setImageDrawable(BlueOff);
             blueDisplay.invalidate();
         }
     }
-    public static void setStatus(String message){
+
+
+
+    private void connectToServer(final String host, final String inPort) {
+        final TextView status = (TextView) findViewById(R.id.status);
+        final Button wifiLock = (Button) findViewById(R.id.wifiLock);
+        final Button doorStatus = (Button)findViewById(R.id.doorStatus);
+        new Thread(new Runnable()  {
+            @Override
+            public void run() {
+                int port = Integer.parseInt(inPort);
+                socket = createSocket(host, port);
+                if (socket != null) {
+                    try {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                status.setText("Connected to Server");
+                                wifiLock.setEnabled(true);
+                                doorStatus.setEnabled(true);
+                            }
+                        });
+                        readMessage(socket);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    private Socket createSocket(String host, int port) {
+        try {
+            return new Socket(host, port);
+        } catch (Exception e) {
+            Log.d("TAG---", e.toString());
+        }
+        return null;
+    }
+
+    private void readMessage(Socket socket) throws IOException {
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        while (true) {
+            final String msg = in.readLine();
+
+            //must remember to save what you sent do miss stuff with those coordinates
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TextView status = (TextView) findViewById(R.id.status);
+                    status.setText(msg);
+                    checkMessage(msg);
+                    checkLockDisplays();
+                }
+            });
+        }
+    }
+
+    private void sendMessage(String msg) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(
+                    new OutputStreamWriter(socket.getOutputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        out.println(msg);
+        out.flush();
+    }
+
+    private void checkMessage(String messge){
+        if(messge.equals("Door is currently UNLOCKED")){
+            isLock = false;
+
+        }else if(messge.equals("Door is currently LOCKED")){
+            isLock = true;
+
+        }
+        //checkLockDisplays();
+
 
     }
 }
+
+
+
+
+

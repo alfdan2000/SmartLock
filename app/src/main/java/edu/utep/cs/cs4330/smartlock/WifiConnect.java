@@ -1,65 +1,108 @@
+/*
 package edu.utep.cs.cs4330.smartlock;
 
-import android.os.AsyncTask;
+import android.os.Message;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
-/**
- * Created by Freddy on 4/30/2017.
- */
-
-public class WifiConnect extends AsyncTask<Void,Void, Void>{
+public class WifiConnect extends Thread{
 
     String dstAddress;
     int dstPort;
-    String response;
+    private boolean running;
+    MainActivity.ClientHandler handler;
 
-    WifiConnect(String addr, int port){
+    Socket socket;
+    PrintWriter printWriter;
+    BufferedReader bufferedReader;
+
+    public WifiConnect(String addr, int port, MainActivity.ClientHandler handler) {
+        super();
         dstAddress = addr;
         dstPort = port;
+        this.handler = handler;
+    }
+
+    public void setRunning(boolean running){
+        this.running = running;
+    }
+
+    private void sendState(String state){
+        handler.sendMessage(
+                Message.obtain(handler,
+                        MainActivity.ClientHandler.UPDATE_STATE, state));
+    }
+
+    public void txMsg(String msgToSend){
+        if(printWriter != null){
+            printWriter.println(msgToSend);
+        }
     }
 
     @Override
-    protected Void doInBackground(Void... arg0) {
+    public void run() {
+        sendState("connecting...");
+
+        running = true;
 
         try {
-            Socket socket = new Socket(dstAddress, dstPort);
-            InputStream inputStream = socket.getInputStream();
-            ByteArrayOutputStream byteArrayOutputStream =
-                    new ByteArrayOutputStream(1024);
-            byte[] buffer = new byte[1024];
+            socket = new Socket(dstAddress, dstPort);
+            sendState("connected");
 
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1){
-                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            OutputStream outputStream = socket.getOutputStream();
+            printWriter = new PrintWriter(outputStream, true);
+
+            InputStream inputStream = socket.getInputStream();
+            InputStreamReader inputStreamReader =
+                    new InputStreamReader(inputStream);
+            bufferedReader = new BufferedReader(inputStreamReader);
+
+            while(running){
+
+                //bufferedReader block the code
+                String line = bufferedReader.readLine();
+                if(line != null){
+                    handler.sendMessage(
+                            Message.obtain(handler,
+                                    MainActivity.ClientHandler.UPDATE_MSG, line));
+                }
+
             }
 
-            socket.close();
-            response = byteArrayOutputStream.toString("UTF-8");
-
-        } catch (UnknownHostException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
+        } finally {
+            if(bufferedReader != null){
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if(printWriter != null){
+                printWriter.close();
+            }
+
+            if(socket != null){
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return null;
-    }
 
-    @Override
-    protected void onPostExecute(Void result) {
-        MainActivity.setStatus(response);
-        super.onPostExecute(result);
+        handler.sendEmptyMessage(MainActivity.ClientHandler.UPDATE_END);
     }
-
 }
 
 
 
+*/
