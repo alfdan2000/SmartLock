@@ -1,12 +1,7 @@
 package edu.utep.cs.cs4330.smartlock;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
-import android.os.Handler;
-import android.os.Message;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -23,23 +18,19 @@ import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
+
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.UUID;
+
 
 public class MainActivity extends AppCompatActivity {
     Boolean isLock = false;
     Boolean isBluetooth = false;
     private Socket socket;
     Boolean isConnected = false;
-    OutputStream outputStream;
-    InputStream inputStream;
-    BluetoothDevice blueDevice;
-    BluetoothAdapter adapter;
 
 
 
